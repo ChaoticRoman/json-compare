@@ -1,76 +1,54 @@
+import json
+import os
 import tkinter as tk
 from tkinter import filedialog
-from tkinter import ttk
-import os
-import json
-from collections import defaultdict
+from tkinter import scrolledtext
 
-class JsonViewer(tk.Tk):
+class Application(tk.Tk):
     def __init__(self):
-        super().__init__()
-        self.json_widgets = []
-        self.line_tags = defaultdict(list)
+        tk.Tk.__init__(self)
         self.title("JSON Viewer")
         self.geometry("800x600")
 
-        self.notebook = ttk.Notebook(self)
-        self.notebook.pack(expand=True, fill="both")
-        self.bind('<<NotebookTabChanged>>', self.on_tab_changed)
+        self.button = tk.Button(self, text="Open Folder", command=self.load_json_files)
+        self.button.pack()
 
-        self.select_folder()
+        self.text_boxes = []
+        self.folder_path = ''
 
-    def select_folder(self):
-        folder_path = filedialog.askdirectory()
-        if folder_path:
-            for file_name in os.listdir(folder_path):
-                if file_name.endswith(".json"):
-                    with open(os.path.join(folder_path, file_name)) as json_file:
-                        data = json.load(json_file)
-                        self.add_tab(file_name, data)
+    def load_json_files(self):
+        self.folder_path = filedialog.askdirectory()
 
-    def add_tab(self, title, data):
-        tab = ttk.Frame(self.notebook)
-        self.notebook.add(tab, text=title)
+        for widget in self.text_boxes:
+            widget.pack_forget()
+        self.text_boxes = []
 
-        text_widget = tk.Text(tab, wrap="word", state="disabled")
-        text_widget.pack(expand=True, fill="both")
+        for file in os.listdir(self.folder_path):
+            if file.endswith(".json"):
+                with open(os.path.join(self.folder_path, file), 'r') as json_file:
+                    json_content = json.load(json_file)
+                    json_content_pretty = json.dumps(json_content, indent=4)
 
-        text_widget.bind("<Button-1>", self.on_text_click)
+                    st = scrolledtext.ScrolledText(self)
+                    st.insert(tk.INSERT, json_content_pretty)
+                    st.config(state=tk.DISABLED)
+                    st.bind("<Button-1>", self.highlight_lines)
+                    st.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        self.insert_json(text_widget, data)
+                    self.text_boxes.append(st)
 
-        self.json_widgets.append(text_widget)
+    def highlight_lines(self, event):
+        for text_box in self.text_boxes:
+            text_box.tag_remove("highlight", 1.0, tk.END)
 
-    def insert_json(self, text_widget, data):
-        json_str = json.dumps(data, indent=4)
+            clicked_text_box = event.widget
+            line, column = clicked_text_box.index(tk.INSERT).split('.')
+            line_start = f'{line}.0'
+            line_end = f'{line}.end'
 
-        text_widget.configure(state="normal")
-        for i, line in enumerate(json_str.split("\n"), start=1):
-            tag = f"line{i}"
-            text_widget.insert("end", line + "\n", tag)
-            self.line_tags[tag].append(text_widget)
-        text_widget.configure(state="disabled")
+            for text_box in self.text_boxes:
+                text_box.tag_add("highlight", line_start, line_end)
+                text_box.tag_config("highlight", background="yellow")
 
-    def on_text_click(self, event):
-        widget = event.widget
-        index = widget.index("@%s,%s" % (event.x, event.y))
-        line = index.split(".")[0]
-        tag = f"line{line}"
-
-        self.clear_all_highlights()
-
-        for widget in self.line_tags[tag]:
-            widget.tag_config(tag, background="yellow")
-
-    def clear_all_highlights(self):
-        for tag in self.line_tags:
-            for widget in self.line_tags[tag]:
-                widget.tag_config(tag, background="")
-
-    def on_tab_changed(self, event):
-        self.clear_all_highlights()
-
-
-if __name__ == "__main__":
-    app = JsonViewer()
-    app.mainloop()
+app = Application()
+app.mainloop()
