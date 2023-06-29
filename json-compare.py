@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import scrolledtext
@@ -24,10 +25,11 @@ class ScrollableFrame(ttk.Frame):
         scrollbar.pack(side="bottom", fill="x")
 
 class Application(tk.Tk):
-    def __init__(self):
+    def __init__(self, folder=None):
         tk.Tk.__init__(self)
         self.title("JSON Viewer")
         self.geometry("800x600")
+        self.bind("<Control-c>", self.close_app)
 
         self.button = tk.Button(self, text="Open Folder", command=self.load_json_files)
         self.button.pack()
@@ -36,10 +38,13 @@ class Application(tk.Tk):
         self.scroll_frame.pack(fill="both", expand=True)
 
         self.text_boxes = []
-        self.folder_path = ''
+        self.folder_path = folder if folder else ''
+
+        if self.folder_path:
+            self.load_json_files()
 
     def load_json_files(self):
-        self.folder_path = filedialog.askdirectory()
+        self.folder_path = self.folder_path or filedialog.askdirectory()
 
         for widget in self.scroll_frame.scrollable_frame.winfo_children():
             widget.destroy()
@@ -78,5 +83,9 @@ class Application(tk.Tk):
             text_box.tag_add("highlight", line_start, line_end)
             text_box.tag_config("highlight", background="yellow")
 
-app = Application()
+    def close_app(self, event):
+        self.quit()
+
+folder_path = sys.argv[1] if len(sys.argv) > 1 else None
+app = Application(folder_path)
 app.mainloop()
