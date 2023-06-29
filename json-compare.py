@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import json
 import os
 import sys
@@ -29,16 +30,18 @@ class Application(tk.Tk):
         tk.Tk.__init__(self)
         self.title("JSON Viewer")
         self.geometry("800x600")
-        self.bind("<Control-c>", self.close_app)
 
         self.button = tk.Button(self, text="Open Folder", command=self.load_json_files)
-        self.button.pack()
+        self.button.grid(row=0, column=0, sticky="new")
 
         self.scroll_frame = ScrollableFrame(self)
-        self.scroll_frame.pack(fill="both", expand=True)
+        self.scroll_frame.grid(row=1, column=0, sticky="nsew")
 
         self.text_boxes = []
         self.folder_path = folder if folder else ''
+
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
 
         if self.folder_path:
             self.load_json_files()
@@ -57,7 +60,7 @@ class Application(tk.Tk):
                     json_content_pretty = json.dumps(json_content, indent=4)
 
                     frame = tk.Frame(self.scroll_frame.scrollable_frame)
-                    frame.pack(side=tk.LEFT, fill="both", expand=True)
+                    frame.grid(row=0, column=len(self.text_boxes), sticky="nsew")
 
                     label = tk.Label(frame, text=file)
                     label.pack(side=tk.TOP, fill="x")
@@ -82,9 +85,6 @@ class Application(tk.Tk):
         for text_box in self.text_boxes:
             text_box.tag_add("highlight", line_start, line_end)
             text_box.tag_config("highlight", background="yellow")
-
-    def close_app(self, event):
-        self.quit()
 
 folder_path = sys.argv[1] if len(sys.argv) > 1 else None
 app = Application(folder_path)
